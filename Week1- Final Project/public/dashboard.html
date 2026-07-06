@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Prism</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .dashboard-container {
+      padding: 2rem 0;
+      min-height: 100vh;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3rem;
+    }
+
+    .dashboard-header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+    }
+
+    .edit-metrics-btn {
+      background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
+    }
+
+    .edit-metrics-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(124, 58, 237, 0.4);
+    }
+
+    .stats-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-item {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-item::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      opacity: 0.05;
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .stat-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .stat-label {
+      font-size: 0.95rem;
+      color: var(--text-light-secondary);
+      font-weight: 600;
+    }
+
+    body.dark-mode .stat-label {
+      color: var(--text-dark-secondary);
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.3rem;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-change {
+      font-size: 0.9rem;
+      color: #10b981;
+    }
+
+    .chart-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .mini-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.75rem;
+      height: 200px;
+    }
+
+    .mini-chart-bar {
+      flex: 1;
+      background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      border-radius: 6px 6px 0 0;
+      opacity: 0.7;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .mini-chart-bar:hover {
+      opacity: 1;
+      transform: translateY(-4px);
+    }
+
+    .mini-chart-bar-label {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.8rem;
+      white-space: nowrap;
+      color: var(--text-light-secondary);
+    }
+
+    body.dark-mode .mini-chart-bar-label {
+      color: var(--text-dark-secondary);
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    body.dark-mode .modal-content {
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(51, 65, 85, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+
+    body.dark-mode .close-btn {
+      color: var(--text-dark);
+    }
+
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .modal-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .modal-input-group label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .modal-input-group input {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.5);
+      color: var(--text-light);
+    }
+
+    body.dark-mode .modal-input-group input {
+      background: rgba(30, 41, 59, 0.3);
+      border-color: var(--border-dark);
+      color: var(--text-dark);
+    }
+
+    .modal-input-group input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .modal-btn-primary {
+      background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      color: white;
+      box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
+    }
+
+    .modal-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(124, 58, 237, 0.4);
+    }
+
+    .modal-btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--text-light);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+    }
+
+    body.dark-mode .modal-btn-secondary {
+      color: var(--text-dark);
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      background: rgba(30, 41, 59, 0.3);
+    }
+
+    .modal-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    body.dark-mode .modal-btn-secondary:hover {
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .action-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      cursor: pointer;
+    }
+
+    .action-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+    }
+
+    .action-text h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .action-text p {
+      font-size: 0.85rem;
+      color: var(--text-light-secondary);
+    }
+
+    body.dark-mode .action-text p {
+      color: var(--text-dark-secondary);
+    }
+
+    .action-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(124, 58, 237, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body onload="initDashboard()">
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-container container">
+      <a href="/" class="logo">
+        <span>◆</span>
+        <span>Prism</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#" onclick="return false;" id="user-info"></a></li>
+        <li><button class="theme-toggle" id="theme-toggle">🌙</button></li>
+        <li><button class="btn btn-secondary" onclick="logout()">Logout</button></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Dashboard -->
+  <div class="container dashboard-container">
+    <div class="dashboard-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p style="color: var(--text-light-secondary); margin-top: 0.5rem;">Welcome back! Here's your analytics overview.</p>
+      </div>
+      <button class="edit-metrics-btn" onclick="openEditModal()">Edit Metrics</button>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-overview">
+      <div class="glass-card stat-item">
+        <div class="stat-content">
+          <div class="stat-header">
+            <span class="stat-label">Total Revenue</span>
+            <div class="stat-icon">💰</div>
+          </div>
+          <div class="stat-value" id="revenue">$0</div>
+          <div class="stat-change">↑ 12% from last month</div>
+        </div>
+      </div>
+
+      <div class="glass-card stat-item">
+        <div class="stat-content">
+          <div class="stat-header">
+            <span class="stat-label">Active Users</span>
+            <div class="stat-icon">👥</div>
+          </div>
+          <div class="stat-value" id="users">0</div>
+          <div class="stat-change">↑ 8% from last month</div>
+        </div>
+      </div>
+
+      <div class="glass-card stat-item">
+        <div class="stat-content">
+          <div class="stat-header">
+            <span class="stat-label">Conversions</span>
+            <div class="stat-icon">📈</div>
+          </div>
+          <div class="stat-value" id="conversions">0%</div>
+          <div class="stat-change">↑ 5% from last month</div>
+        </div>
+      </div>
+
+      <div class="glass-card stat-item">
+        <div class="stat-content">
+          <div class="stat-header">
+            <span class="stat-label">Engagement</span>
+            <div class="stat-icon">⚡</div>
+          </div>
+          <div class="stat-value" id="engagement">0%</div>
+          <div class="stat-change">↑ 15% from last month</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-container">
+      <div class="glass-card">
+        <div class="chart-title">Monthly Revenue Trend</div>
+        <div class="mini-chart" id="revenue-chart"></div>
+      </div>
+
+      <div class="glass-card">
+        <div class="chart-title">User Growth</div>
+        <div class="mini-chart" id="users-chart"></div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <div class="glass-card action-card" onclick="openEditModal()">
+        <div class="action-icon">✏️</div>
+        <div class="action-text">
+          <h3>Edit Metrics</h3>
+          <p>Update your dashboard metrics</p>
+        </div>
+      </div>
+
+      <div class="glass-card action-card" onclick="exportData()">
+        <div class="action-icon">📥</div>
+        <div class="action-text">
+          <h3>Export Data</h3>
+          <p>Download your analytics data</p>
+        </div>
+      </div>
+
+      <div class="glass-card action-card" onclick="refreshDashboard()">
+        <div class="action-icon">🔄</div>
+        <div class="action-text">
+          <h3>Refresh</h3>
+          <p>Reload dashboard data</p>
+        </div>
+      </div>
+
+      <div class="glass-card action-card" onclick="toggleView()">
+        <div class="action-icon">📊</div>
+        <div class="action-text">
+          <h3>Toggle View</h3>
+          <p>Switch between views</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Metrics</h2>
+        <button class="close-btn" onclick="closeEditModal()">✕</button>
+      </div>
+
+      <form class="modal-form" id="metrics-form">
+        <div class="modal-input-group">
+          <label for="revenue-input">Revenue ($)</label>
+          <input type="number" id="revenue-input" placeholder="0" required>
+        </div>
+
+        <div class="modal-input-group">
+          <label for="users-input">Active Users</label>
+          <input type="number" id="users-input" placeholder="0" required>
+        </div>
+
+        <div class="modal-input-group">
+          <label for="conversions-input">Conversion Rate (%)</label>
+          <input type="number" id="conversions-input" placeholder="0" step="0.1" required>
+        </div>
+
+        <div class="modal-input-group">
+          <label for="engagement-input">Engagement (%)</label>
+          <input type="number" id="engagement-input" placeholder="0" step="0.1" required>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="modal-btn modal-btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="modal-btn modal-btn-primary">Update Metrics</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script>
+    let dashboardData = {};
+
+    async function initDashboard() {
+      requireAuth();
+      
+      // Load user info
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        document.getElementById('user-info').textContent = user.name || 'User';
+      }
+
+      // Load dashboard data
+      await loadDashboard();
+    }
+
+    async function loadDashboard() {
+      try {
+        const response = await apiCall('/api/dashboard', {
+          method: 'GET',
+        });
+
+        if (response && response.ok) {
+          dashboardData = await response.json();
+          updateDashboardUI();
+        }
+      } catch (error) {
+        console.error('[v0] Load dashboard error:', error);
+        showAlert('Failed to load dashboard data', 'error');
+      }
+    }
+
+    function updateDashboardUI() {
+      // Update stat values
+      document.getElementById('revenue').textContent = '$' + dashboardData.revenue?.toLocaleString() || '0';
+      document.getElementById('users').textContent = dashboardData.users?.toLocaleString() || '0';
+      document.getElementById('conversions').textContent = dashboardData.conversions || '0' + '%';
+      document.getElementById('engagement').textContent = dashboardData.engagement || '0' + '%';
+
+      // Update form values
+      document.getElementById('revenue-input').value = dashboardData.revenue || 0;
+      document.getElementById('users-input').value = dashboardData.users || 0;
+      document.getElementById('conversions-input').value = dashboardData.conversions || 0;
+      document.getElementById('engagement-input').value = dashboardData.engagement || 0;
+
+      // Generate charts
+      generateCharts();
+    }
+
+    function generateCharts() {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      const revenueValues = [70000, 85000, 92000, 88000, 105000, 124592];
+      const userValues = [1200, 1450, 1680, 1850, 2300, 2840];
+
+      // Revenue chart
+      const revenueChart = document.getElementById('revenue-chart');
+      revenueChart.innerHTML = '';
+      const maxRevenue = Math.max(...revenueValues);
+
+      revenueValues.forEach((value, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'mini-chart-bar';
+        bar.style.height = (value / maxRevenue * 100) + '%';
+        bar.innerHTML = `<div class="mini-chart-bar-label">${months[i]}</div>`;
+        revenueChart.appendChild(bar);
+      });
+
+      // Users chart
+      const usersChart = document.getElementById('users-chart');
+      usersChart.innerHTML = '';
+      const maxUsers = Math.max(...userValues);
+
+      userValues.forEach((value, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'mini-chart-bar';
+        bar.style.height = (value / maxUsers * 100) + '%';
+        bar.innerHTML = `<div class="mini-chart-bar-label">${months[i]}</div>`;
+        usersChart.appendChild(bar);
+      });
+    }
+
+    function openEditModal() {
+      document.getElementById('edit-modal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('active');
+    }
+
+    document.getElementById('metrics-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const revenue = parseFloat(document.getElementById('revenue-input').value);
+      const users = parseInt(document.getElementById('users-input').value);
+      const conversions = parseFloat(document.getElementById('conversions-input').value);
+      const engagement = parseFloat(document.getElementById('engagement-input').value);
+
+      try {
+        const response = await apiCall('/api/dashboard', {
+          method: 'PUT',
+          body: JSON.stringify({ revenue, users, conversions, engagement }),
+        });
+
+        if (response && response.ok) {
+          dashboardData = await response.json();
+          updateDashboardUI();
+          closeEditModal();
+          showAlert('Metrics updated successfully', 'success');
+        }
+      } catch (error) {
+        console.error('[v0] Update error:', error);
+        showAlert('Failed to update metrics', 'error');
+      }
+    });
+
+    function refreshDashboard() {
+      loadDashboard();
+      showAlert('Dashboard refreshed', 'success');
+    }
+
+    function exportData() {
+      const data = {
+        ...dashboardData,
+        exportedAt: new Date().toISOString(),
+      };
+      
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'dashboard-data.json';
+      a.click();
+      
+      showAlert('Data exported successfully', 'success');
+    }
+
+    function toggleView() {
+      const html = document.documentElement;
+      const isDark = document.body.classList.contains('dark-mode');
+      
+      if (isDark) {
+        document.body.classList.remove('dark-mode');
+        localStorage.setItem('theme', 'light');
+      } else {
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('theme', 'dark');
+      }
+      
+      showAlert('View switched', 'success');
+    }
+
+    function logout() {
+      clearAuth();
+      window.location.href = '/';
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('edit-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'edit-modal') {
+        closeEditModal();
+      }
+    });
+  </script>
+</body>
+</html>
